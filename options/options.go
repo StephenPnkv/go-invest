@@ -16,7 +16,7 @@ import (
 
 
 
-type OptionsData struct {
+type YahooQuote struct {
 	OptionChain struct {
 		Result []struct {
 			UnderlyingSymbol string    `json:"underlyingSymbol"`
@@ -149,7 +149,7 @@ func GetYahooOptionsInfo(ticker string){
       log.Fatal("Error loading .env file")
     }
 
-  var op OptionsData
+  var op YahooQuote
   client := &http.Client{}
   t = strings.ToUpper(ticker)
   URL := fmt.Sprintf("https://yfapi.net/v7/finance/options/%s",t)
@@ -173,13 +173,33 @@ func GetYahooOptionsInfo(ticker string){
       log.Println("No ticker found.")
       return
     }
+    printFormattedQuoteData(op)
     printFormattedOptionsData(op)
 
   }
 
 }
 
-func printFormattedOptionsData(op OptionsData){
+func printFormattedQuoteData(op YahooQuote){
+  fmt.Print(gchalk.WithHex("FFFFFF").Underline("\tMarket cap.\tPrice\tHigh\tLow\tOpen\t52-week High\t52-week Low\tAvg. volume\tVolume\t\tP/E\t\n"))
+  for i := 0; i < len(op.OptionChain.Result);i++{
+    fmt.Printf("\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t%d\t%.2f\n",
+      op.OptionChain.Result[i].Quote.MarketCap,
+      op.OptionChain.Result[i].Quote.RegularMarketPrice,
+      op.OptionChain.Result[i].Quote.RegularMarketDayHigh,
+      op.OptionChain.Result[i].Quote.RegularMarketDayLow,
+      op.OptionChain.Result[i].Quote.RegularMarketOpen,
+      op.OptionChain.Result[i].Quote.FiftyTwoWeekHigh,
+      op.OptionChain.Result[i].Quote.FiftyTwoWeekLow,
+      op.OptionChain.Result[i].Quote.AverageDailyVolume10Day,
+      op.OptionChain.Result[i].Quote.RegularMarketVolume,
+      op.OptionChain.Result[i].Quote.PriceEpsCurrentYear,
+    )
+  }
+  fmt.Println("\n")
+}
+
+func printFormattedOptionsData(op YahooQuote){
   //#FF3333 - red
   //#00FF80 - green
   for res := 0; res < len(op.OptionChain.Result); res++{
@@ -238,7 +258,7 @@ func printFormattedOptionsData(op OptionsData){
           itm = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
         }
 
-        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Puts[j].Strike,pBid,pAsk))
+        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Calls[j].Strike,pBid,pAsk))
         fmt.Print(coloredData)
 
         plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
