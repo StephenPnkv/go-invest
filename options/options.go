@@ -140,6 +140,8 @@ type OptionsData struct {
 	} `json:"optionChain"`
 }
 
+var t string
+
 func GetYahooOptionsInfo(ticker string){
 
   err := godotenv.Load()
@@ -149,7 +151,7 @@ func GetYahooOptionsInfo(ticker string){
 
   var op OptionsData
   client := &http.Client{}
-  t := strings.ToUpper(ticker)
+  t = strings.ToUpper(ticker)
   URL := fmt.Sprintf("https://yfapi.net/v7/finance/options/%s",t)
   req, err := http.NewRequest("GET",URL,nil)
   req.Header.Add("X-API-KEY",os.Getenv("API_KEY"))
@@ -166,10 +168,9 @@ func GetYahooOptionsInfo(ticker string){
       log.Fatal(err)
     }
     defer res.Body.Close()
-
     err = json.Unmarshal(body,&op)
     if err != nil{
-      log.Println(err)
+      log.Println("No ticker found.")
       return
     }
     printFormattedOptionsData(op)
@@ -185,12 +186,12 @@ func printFormattedOptionsData(op OptionsData){
 
     for i := 0; i < len(op.OptionChain.Result[res].Options); i++{
       //Options expiration dates returns as seconds since Thursday, 1 January 1970 from the Yahoo API
-      expDate := int64(op.OptionChain.Result[res].Options[i].ExpirationDate)
-      t := time.Unix(expDate,0)
+      exp:= int64(op.OptionChain.Result[res].Options[i].ExpirationDate)
+      expDate := time.Unix(exp,0)
 
-      fmt.Printf("\t\t\t\t\t%s\t\t\t\t\t\t\t\n",t)
-      fmt.Print(gchalk.WithHex("#FF3333").Underline("\t\t\t\t\t\t       Puts\t\t\t\t\t\t\t\n"))
-      fmt.Print(gchalk.WithHex("FFFFFF").Underline("\tBid\t\tAsk\t\tVolume\t\tOpen Int.\tIV\t\t% Change\tITM\t\n"))
+      fmt.Printf("\t$%s\t\t\t\t   %s\t\t\t\t\t\t\t\n",t,expDate)
+      fmt.Print(gchalk.WithHex("#FF3333").Underline("\t\t\t\t\t\t       Puts\t\t\t\t\t\t\t\t\t\n"))
+      fmt.Print(gchalk.WithHex("FFFFFF").Underline("\tStrike\t\tBid\t\tAsk\t\tVolume\t\tOpen Int.\tIV\t\t% Change\tITM\t\n"))
       for j := 0; j < len(op.OptionChain.Result[res].Options[i].Puts); j++{
         pAsk := gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Ask))
         pBid := gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Bid))
@@ -207,7 +208,7 @@ func printFormattedOptionsData(op OptionsData){
           itm = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
         }
 
-        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%s\t\t%s\t",pBid,pAsk))
+        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Puts[j].Strike,pBid,pAsk))
         fmt.Print(coloredData)
 
         plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
@@ -220,7 +221,7 @@ func printFormattedOptionsData(op OptionsData){
       }
 
 
-      fmt.Print(gchalk.WithHex("#00FF80").Underline("\t\t\t\t\t\t       Calls\t\t\t\t\t\t\t\n"))
+      fmt.Print(gchalk.WithHex("#00FF80").Underline("\t\t\t\t\t\t       Calls\t\t\t\t\t\t\t\t\t\n"))
       for j := 0; j < len(op.OptionChain.Result[res].Options[i].Calls); j++{
         pAsk := gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Ask))
         pBid := gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Bid))
@@ -237,7 +238,7 @@ func printFormattedOptionsData(op OptionsData){
           itm = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
         }
 
-        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%s\t\t%s\t",pBid,pAsk))
+        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Puts[j].Strike,pBid,pAsk))
         fmt.Print(coloredData)
 
         plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
