@@ -14,8 +14,6 @@ import (
   "os"
 )
 
-
-
 type YahooQuote struct {
 	OptionChain struct {
 		Result []struct {
@@ -140,14 +138,17 @@ type YahooQuote struct {
 	} `json:"optionChain"`
 }
 
-var t string
+var (
+  t string
+  total float64
+)
 
 func GetYahooOptionsInfo(ticker string){
 
   err := godotenv.Load()
-    if err != nil {
-      log.Fatal("Error loading .env file")
-    }
+  if err != nil {
+    log.Fatal("Error loading .env file")
+  }
 
   var op YahooQuote
   client := &http.Client{}
@@ -175,15 +176,13 @@ func GetYahooOptionsInfo(ticker string){
     }
     printFormattedQuoteData(op)
     printFormattedOptionsData(op)
-
   }
-
 }
 
 func printFormattedQuoteData(op YahooQuote){
   fmt.Print(gchalk.WithHex("FFFFFF").Underline("\tMarket cap.\tPrice\tHigh\tLow\tOpen\t52-week High\t52-week Low\tAvg. volume\tVolume\t\tP/E\t\n"))
   for i := 0; i < len(op.OptionChain.Result);i++{
-    fmt.Printf("\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t%d\t%.2f\n",
+    fmt.Printf("\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t\t%d\t%.2f\n",
       op.OptionChain.Result[i].Quote.MarketCap,
       op.OptionChain.Result[i].Quote.RegularMarketPrice,
       op.OptionChain.Result[i].Quote.RegularMarketDayHigh,
@@ -197,6 +196,27 @@ func printFormattedQuoteData(op YahooQuote){
     )
   }
   fmt.Println("\n")
+}
+
+func getOpenInterestStats(op YahooQuote)(int, int){
+  totalPutInterest, totalCallInterest := 0,0
+
+  for res := 0; res < len(op.OptionChain.Result); res++{
+
+    for i := 0; i < len(op.OptionChain.Result[res].Options); i++{
+
+      for j := 0; j < len(op.OptionChain.Result[res].Options[i].Puts); j++{
+        totalPutInterest += op.OptionChain.Result[res].Options[i].Puts[j].OpenInterest
+      }
+
+      for j := 0; j < len(op.OptionChain.Result[res].Options[i].Calls); j++{
+        totalCallInterest += op.OptionChain.Result[res].Options[i].Calls[j].OpenInterest
+      }
+
+    }
+
+  }
+  return totalPutInterest,totalCallInterest
 }
 
 func printFormattedOptionsData(op YahooQuote){
@@ -240,7 +260,6 @@ func printFormattedOptionsData(op YahooQuote){
         fmt.Print(gchalk.WithHex("#FFFFFF").Underline(plainData))
       }
 
-
       fmt.Print(gchalk.WithHex("#00FF80").Underline("\t\t\t\t\t\t       Calls\t\t\t\t\t\t\t\t\t\n"))
       for j := 0; j < len(op.OptionChain.Result[res].Options[i].Calls); j++{
         pAsk := gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Ask))
@@ -270,5 +289,9 @@ func printFormattedOptionsData(op YahooQuote){
         fmt.Print(gchalk.WithHex("#FFFFFF").Underline(plainData))
       }
     }
+    p, c := getOpenInterestStats(op)
+    fmt.Printf("\nCall/Put ratio: %.2f", float64(c/p))
+
   }
+  fmt.Println("\n")
 }
