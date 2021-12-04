@@ -8,10 +8,11 @@ import (
   "strings"
   "io/ioutil"
   "encoding/json"
-  "github.com/jwalton/gchalk"
+//  "github.com/jwalton/gchalk"
   "time"
   "github.com/joho/godotenv"
   "os"
+  "errors"
 )
 
 type YahooQuote struct {
@@ -143,7 +144,7 @@ var (
   total float64
 )
 
-func GetYahooOptionsInfo(ticker string){
+func GetStockInfo(w http.ResponseWriter,ticker string) (YahooQuote, error){
 
   err := godotenv.Load()
   if err != nil {
@@ -171,18 +172,18 @@ func GetYahooOptionsInfo(ticker string){
     defer res.Body.Close()
     err = json.Unmarshal(body,&op)
     if err != nil{
-      log.Println("No ticker found.")
-      return
+      log.Println(err)
     }
-    printFormattedQuoteData(op)
-    printFormattedOptionsData(op)
+    return op,nil
+  }else{
+    return op, errors.New(fmt.Sprintf("\nError: %s\n", http.StatusNoContent))
   }
 }
 
-func printFormattedQuoteData(op YahooQuote){
-  fmt.Print(gchalk.WithHex("FFFFFF").Underline("\tMarket cap.\tPrice\tHigh\tLow\tOpen\t52-week High\t52-week Low\tAvg. volume\tVolume\t\tP/E\t\n"))
+func PrintFormattedQuoteData(w http.ResponseWriter, op YahooQuote){
+  fmt.Fprint(w,"\tMarket cap.\tPrice\tHigh\tLow\tOpen\t52-week High\t52-week Low\tAvg. volume\tVolume\t\tP/E\t\n")
   for i := 0; i < len(op.OptionChain.Result);i++{
-    fmt.Printf("\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t\t%d\t%.2f\n",
+    fmt.Fprintf(w,"\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t%d\t%.2f\n",
       op.OptionChain.Result[i].Quote.MarketCap,
       op.OptionChain.Result[i].Quote.RegularMarketPrice,
       op.OptionChain.Result[i].Quote.RegularMarketDayHigh,
@@ -195,10 +196,10 @@ func printFormattedQuoteData(op YahooQuote){
       op.OptionChain.Result[i].Quote.PriceEpsCurrentYear,
     )
   }
-  fmt.Println("\n")
+  fmt.Fprint(w,"\n")
 }
 
-func getOpenInterestStats(op YahooQuote)(int, int){
+func GetOpenInterestStats(op YahooQuote)(int, int){
   totalPutInterest, totalCallInterest := 0,0
 
   for res := 0; res < len(op.OptionChain.Result); res++{
@@ -219,7 +220,7 @@ func getOpenInterestStats(op YahooQuote)(int, int){
   return totalPutInterest,totalCallInterest
 }
 
-func printFormattedOptionsData(op YahooQuote){
+func PrintFormattedOptionsData(w http.ResponseWriter, op YahooQuote){
   //#FF3333 - red
   //#00FF80 - green
   for res := 0; res < len(op.OptionChain.Result); res++{
@@ -229,27 +230,27 @@ func printFormattedOptionsData(op YahooQuote){
       exp:= int64(op.OptionChain.Result[res].Options[i].ExpirationDate)
       expDate := time.Unix(exp,0)
 
-      fmt.Printf("\t$%s\t\t\t\t   %s\t\t\t\t\t\t\t\n",t,expDate)
-      fmt.Print(gchalk.WithHex("#FF3333").Underline("\t\t\t\t\t\t       Puts\t\t\t\t\t\t\t\t\t\n"))
-      fmt.Print(gchalk.WithHex("FFFFFF").Underline("\tStrike\t\tBid\t\tAsk\t\tVolume\t\tOpen Int.\tIV\t\t% Change\tITM\t\n"))
+      fmt.Fprintf(w,"\t$%s\t\t\t\t   %s\t\t\t\t\t\t\t\n",op.OptionChain.Result[res].Quote.Symbol,expDate)
+      fmt.Fprint(w,"\t\t\t\t\t\t       Puts\t\t\t\t\t\t\t\t\t\n")
+      fmt.Fprint(w,"\tStrike\t\tBid\t\tAsk\t\tVolume\t\tOpen Int.\tIV\t\t% Change\tITM\t\n")
       for j := 0; j < len(op.OptionChain.Result[res].Options[i].Puts); j++{
-        pAsk := gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Ask))
-        pBid := gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Bid))
+        pAsk := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Ask))
+        pBid := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Bid))
         var pChange string
         if op.OptionChain.Result[res].Options[i].Puts[j].PercentChange < 0{
-          pChange = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].PercentChange))
+          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].PercentChange))
         }else{
-          pChange = gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].PercentChange))
+          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].PercentChange))
         }
         var itm string
         if op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney == true{
-          itm = gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
+          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
         }else{
-          itm = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
+          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
         }
 
-        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Puts[j].Strike,pBid,pAsk))
-        fmt.Print(coloredData)
+        coloredData := fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Puts[j].Strike,pBid,pAsk)
+        fmt.Fprint(w,coloredData)
 
         plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
           op.OptionChain.Result[res].Options[i].Puts[j].Volume,
@@ -257,28 +258,28 @@ func printFormattedOptionsData(op YahooQuote){
           op.OptionChain.Result[res].Options[i].Puts[j].ImpliedVolatility,
           pChange,
           itm)
-        fmt.Print(gchalk.WithHex("#FFFFFF").Underline(plainData))
+        fmt.Fprint(w,plainData)
       }
 
-      fmt.Print(gchalk.WithHex("#00FF80").Underline("\t\t\t\t\t\t       Calls\t\t\t\t\t\t\t\t\t\n"))
+      fmt.Fprint(w,"\t\t\t\t\t\t       Calls\t\t\t\t\t\t\t\t\t\n")
       for j := 0; j < len(op.OptionChain.Result[res].Options[i].Calls); j++{
-        pAsk := gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Ask))
-        pBid := gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Bid))
+        pAsk := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Ask))
+        pBid := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Bid))
         var pChange string
         if op.OptionChain.Result[res].Options[i].Calls[j].PercentChange < 0{
-          pChange = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].PercentChange))
+          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].PercentChange))
         }else{
-          pChange = gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].PercentChange))
+          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].PercentChange))
         }
         var itm string
         if op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney == true{
-          itm = gchalk.WithHex("#00FF80").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
+          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
         }else{
-          itm = gchalk.WithHex("#FF3333").Bold(fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
+          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
         }
 
-        coloredData := gchalk.WithHex("#FFFFFF").Underline(fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Calls[j].Strike,pBid,pAsk))
-        fmt.Print(coloredData)
+        coloredData := fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Calls[j].Strike,pBid,pAsk)
+        fmt.Fprint(w,coloredData)
 
         plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
           op.OptionChain.Result[res].Options[i].Calls[j].Volume,
@@ -286,11 +287,10 @@ func printFormattedOptionsData(op YahooQuote){
           op.OptionChain.Result[res].Options[i].Calls[j].ImpliedVolatility,
           pChange,
           itm)
-        fmt.Print(gchalk.WithHex("#FFFFFF").Underline(plainData))
+        fmt.Fprint(w,plainData)
       }
     }
-    p, c := getOpenInterestStats(op)
-    fmt.Printf("\nCall/Put ratio: %.2f", float64(c/p))
+
 
   }
   fmt.Println("\n")

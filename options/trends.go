@@ -28,7 +28,7 @@ type Trends struct {
 
 var cache map[string] string
 
-func GetTrends(){
+func GetTrends(w http.ResponseWriter, r *http.Request){
 
   err := godotenv.Load()
   if err != nil {
@@ -59,7 +59,11 @@ func GetTrends(){
       return
     }
     updateCache(tr)
-    printFormattedTrends(tr)
+    fmt.Fprint(w, "\nTrending US stocks: \n ")
+    for i := range cache{
+
+      fmt.Fprint(w,fmt.Sprintf("\t\t%s\n",cache[i]))
+    }
   }
 }
 
