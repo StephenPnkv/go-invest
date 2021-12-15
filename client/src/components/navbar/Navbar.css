@@ -1,0 +1,10 @@
+
+.navbar{
+  border-bottom: 1px solid #202020;
+}
+
+.navbar > img{
+  height: 20px;
+  width: 20px;
+  padding-top: 3px;
+}

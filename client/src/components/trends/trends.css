@@ -1,0 +1,49 @@
+.trend-feed{
+  height: 10vh;
+  width: 60%;
+  margin:0 auto;
+  display: flex;
+  padding: 0;
+}
+
+.trend-feed > ul{
+  margin: 5px;
+  padding: 0;
+}
+
+.trend-header >img{
+  margin: 5px;
+  padding: 5px;
+}
+
+.trend-header{
+  display: flex;
+  height: 20px;
+  padding: 10px;
+  gap: 10px 10px;
+}
+
+.hwrap{
+  overflow: hidden;
+  background: #FFFFFF;
+}
+
+.hmove{ display: flex;}
+
+.hitem{
+  flex-shrink: 0;
+  width: 80%;
+  box-sizing: border-box;
+  padding: 10px;
+  text-align: center;
+}
+
+@keyframes horizontalMove {
+  0%{ transform: translate3d(100%,0,0);}
+  100%{ transform: translate3d(-300%,0,0);}
+}
+.hmove{
+  animation: horizontalMove 30s infinite;
+  animation-play-state: running;
+}
+.hmove:hover{animation-play-state: paused;}

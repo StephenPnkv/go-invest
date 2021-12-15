@@ -1,0 +1,123 @@
+/*******Navbar*******/
+  
+
+  .navbar-main{
+    background-color: var(--black);
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    transition: 0.5s;
+    font-family: var(--main-font-theme);
+    font-size: 2.5vh;
+    border-bottom: 2px solid var(--green-blue-col);
+  }
+  .navbar-content{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20vh;
+    font-size: 1.5em;
+    align-content: center;
+  }
+
+  .home-link{
+    padding: 0.5rem 2.5rem 0.5rem 2rem;
+  }
+
+
+  .navbar-menu-wrap{
+    display: flex;
+    justify-content: flex-start;
+    font-size: 2.5vh;
+  }
+
+  .home-link a:hover{
+    text-decoration: none;
+  }
+  .logo-link{
+    background-image: url('../images/logo.png');
+    background-size: cover;
+    background-position: center;
+    height: 2rem;
+    width: 2rem;
+  }
+ 
+  .navbar-content a{
+    color: var(--green-blue-col);
+    font-size: 1.5em;
+  }
+
+  .navbar-content li{
+    list-style-type: none;
+  }
+
+  .navbar-content a:hover{
+    filter: blur(1px);
+    color: var(--white-col);;
+    text-decoration: none;
+  }
+
+  .close-icon{
+    position: absolute;
+    left: 0%;
+    top: 0%;
+    margin: 0.15rem 0.15rem 0rem 0.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+
+
+  .menu-icon{
+    margin: 0.15rem 0.15rem 0rem 0.5rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+
+   @media screen and (max-width: 800px){
+    .home-link{
+      padding: 0.5rem 2rem 0.5rem 1.25rem;
+    }
+    .logo-link{
+      height: 1.25rem;
+      width: 1.25rem;
+    }
+    .menu-icon{
+      margin: 0.15rem 0.15rem 0rem 0.5rem;
+      padding: 0.5rem 0rem 0.5rem 0.25rem;
+      height: 2rem;
+      width: 2rem;
+    }
+    .close-icon{
+      margin: 0.15rem 0.15rem 0rem 0.5rem;
+      padding: 0.5rem 0rem 0.5rem 0.25rem;
+      height: 2rem;
+      width: 2rem;
+    }
+  }
+
+  @media screen and (min-width: 800px) and (max-width: 1000px){
+    .home-link{
+      padding: 0.5rem 2rem 0.5rem 1.25rem;
+    }
+    .logo-link{
+      height: 1.25rem;
+      width: 1.25rem;
+    }
+    .menu-icon{
+      padding: 0.5rem 0rem 0.5rem 0.25rem;
+      height: 2rem;
+      width: 2rem;
+    }
+    .close-icon{
+      padding: 0.5rem 0rem 0.5rem 0.25rem;
+      height: 2rem;
+      width: 2rem;
+    }
+  }
+
+/********************/

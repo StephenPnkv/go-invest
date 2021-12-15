@@ -8,14 +8,15 @@ import (
   "strings"
   "io/ioutil"
   "encoding/json"
-//  "github.com/jwalton/gchalk"
+  "github.com/patrickmn/go-cache"
   "time"
   "github.com/joho/godotenv"
   "os"
-  "errors"
+//  "errors"
+  "net/url"
 )
 
-type OptionsInfo struct {
+type OptionsData struct {
 	OptionChain struct {
 		Result []struct {
 			UnderlyingSymbol string    `json:"underlyingSymbol"`
@@ -142,21 +143,37 @@ type OptionsInfo struct {
 var (
   t string
   total float64
+  optionsCache = cache.New(60*time.Minute, 60*time.Minute)
 )
 
-func GetStockInfo(w http.ResponseWriter,ticker string) (OptionsInfo, error){
-
-
+func GetOptionsData(w http.ResponseWriter, r *http.Request){
 
   err := godotenv.Load()
   if err != nil {
     log.Fatal("Error loading .env file")
   }
 
-  var op OptionsInfo
+  log.Println("Incoming request: ", r.RemoteAddr)
+  u, err := url.Parse(r.URL.RequestURI())
+  if err != nil{
+    log.Fatal(err)
+  }
+
+  m,_ := url.ParseQuery(u.RawQuery)
+  ticker := strings.ToUpper(m["symbol"][0])
+
+  val, found := optionsCache.Get(ticker)
+  if found{
+    log.Println(ticker, "retrieved from options cache.")
+    data := val.(*OptionsData)
+    json.NewEncoder(w).Encode(data)
+    return
+  }
+
+  var op OptionsData
   client := &http.Client{}
-  t = strings.ToUpper(ticker)
-  URL := fmt.Sprintf("https://yfapi.net/v7/finance/options/%s",t)
+  URL := fmt.Sprintf("https://yfapi.net/v7/finance/options/%s",ticker)
+
   req, err := http.NewRequest("GET",URL,nil)
   req.Header.Add("X-API-KEY",os.Getenv("API_KEY"))
   req.Header.Add("Content-Type", "application/json")
@@ -176,13 +193,11 @@ func GetStockInfo(w http.ResponseWriter,ticker string) (OptionsInfo, error){
     if err != nil{
       log.Println(err)
     }
-    return op,nil
-  }else{
-    return op, errors.New(fmt.Sprintf("\nError: %s\n", http.StatusNoContent))
+    json.NewEncoder(w).Encode(op)
   }
 }
 
-func PrintFormattedQuoteData(w http.ResponseWriter, op OptionsInfo){
+func PrintFormattedQuoteData(w http.ResponseWriter, op OptionsData){
   fmt.Fprint(w,"\tMarket cap.\tPrice\tHigh\tLow\tOpen\t52-week High\t52-week Low\tAvg. volume\tVolume\t\tP/E\t\n")
   for i := 0; i < len(op.OptionChain.Result);i++{
     fmt.Fprintf(w,"\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t%d\t%.2f\n",
@@ -201,7 +216,7 @@ func PrintFormattedQuoteData(w http.ResponseWriter, op OptionsInfo){
   fmt.Fprint(w,"\n")
 }
 
-func GetOpenInterestStats(op OptionsInfo)(int, int){
+func GetOpenInterestStats(op OptionsData)(int, int){
   totalPutInterest, totalCallInterest := 0,0
 
   for res := 0; res < len(op.OptionChain.Result); res++{
@@ -222,7 +237,7 @@ func GetOpenInterestStats(op OptionsInfo)(int, int){
   return totalPutInterest,totalCallInterest
 }
 
-func PrintFormattedOptionsData(w http.ResponseWriter, op OptionsInfo){
+func PrintFormattedOptionsData(w http.ResponseWriter, op OptionsData){
   //#FF3333 - red
   //#00FF80 - green
   for res := 0; res < len(op.OptionChain.Result); res++{

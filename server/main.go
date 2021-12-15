@@ -1,66 +1,44 @@
 package main
 
 import (
- "fmt"
- "strings"
-  "go-invest/options"
-//  "go-invest/quote"
-//  "os"
-  "github.com/patrickmn/go-cache"
-	"time"
-  "log"
-  "net/url"
+  "go-invest/server/options"
+  "go-invest/server/charts"
+
+  "go-invest/server/quote"
   "net/http"
   "github.com/gorilla/mux"
+  "github.com/gorilla/handlers"
+  "log"
 )
 
-var (
-  quotes = cache.New(60*time.Minute, 60*time.Minute) //Update cache every hr
-  //siData = cache.New(720*time.Minute, 720*time.Minute)//update cache every 12 hrs
-)
 
-func trends(w http.ResponseWriter, r *http.Request){
+func trendHandler(w http.ResponseWriter, r *http.Request){
   w.Header().Set("Content-Type", "application/json")
-  options.GetTrends(w,r)
+  quote.GetTrends(w,r)
+}
+
+func siHandler(w http.ResponseWriter, r *http.Request){
+  w.Header().Set("Content-Type", "application/json")
+  options.GetShortInterest(w,r)
+}
+
+func chartHandler(w http.ResponseWriter, r *http.Request){
+  w.Header().Set("Content-Type", "application/json")
+  charts.GetChart(w,r)
 }
 
 
-func stocks(w http.ResponseWriter, r *http.Request){
-//  w.Header().Set("Content-Type", "application/json")
-
-  u, err := url.Parse(r.URL.RequestURI())
-  if err != nil{
-    log.Fatal(err)
-  }
-
-  m,_ := url.ParseQuery(u.RawQuery)
-  ticker := m["symbol"][0]
-
-  val, found := quotes.Get(ticker)
-  if found{
-    log.Println(strings.ToUpper(ticker), "retrieved from cache.")
-    data := val.(*options.YahooQuote)
-    options.PrintFormattedQuoteData(w,*data)
-    options.PrintFormattedOptionsData(w,*data)
-    options.GetShortInterest(w,ticker)
-    return
-  }
-
-  quote, err := options.GetStockInfo(w,ticker)
-  if err != nil{
-    log.Fatal(err)
-  }
-  quotes.Set(ticker,&quote, 10*time.Minute)
-  options.PrintFormattedQuoteData(w,quote)
-  options.PrintFormattedOptionsData(w,quote)
-  options.GetShortInterest(w,ticker)
-
-  fmt.Println()
+func optionsHandler(w http.ResponseWriter, r *http.Request){
+ w.Header().Set("Content-Type", "application/json")
+ options.GetOptionsData(w,r)
 }
 
+func quoteHandler(w http.ResponseWriter, r *http.Request){
+ w.Header().Set("Content-Type", "application/json")
+ quote.GetQuote(w,r)
+}
 
 func init(){
-  //  t := cache.New(30*time.Minute, 30*time.Minute)
 }
 
 
@@ -68,9 +46,11 @@ func main(){
 
   port := ":8080"
   r := mux.NewRouter()
-  //r.HandleFunc("/", home)
-  r.HandleFunc("/stocks", stocks)
-  r.HandleFunc("/trends", trends)
-  http.ListenAndServe(port,r)
+  r.HandleFunc("/api/options", optionsHandler).Methods("GET")
+  r.HandleFunc("/api/si",siHandler).Methods("GET")
+  r.HandleFunc("/api/chart",chartHandler).Methods("GET")
+  r.HandleFunc("/api/quote", quoteHandler).Methods("GET")
+  r.HandleFunc("/api/trends", trendHandler).Methods("GET")
+  log.Fatal(http.ListenAndServe(port, handlers.CORS(handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"}), handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS"}), handlers.AllowedOrigins([]string{"*"}))(r)))
 
 }

@@ -4,6 +4,7 @@ import (
   "fmt"
   "log"
   "net/http"
+  "net/url"
   "strings"
   "io/ioutil"
   "encoding/json"
@@ -11,9 +12,15 @@ import (
   "os"
   "github.com/fxtlabs/date"
   "github.com/patrickmn/go-cache"
-  "net/url"
-
+  "time"
+  "math"
 )
+
+type Exchanges struct{
+  NASDAQ *ShortInterestData `json:"nsdq"`
+  NYSE *ShortInterestData `json:"nyse"`
+  PercentDifference []float64 `json:"pDifference"`
+}
 
 type ShortInterestData struct {
 	DatasetData struct {
@@ -30,14 +37,16 @@ type ShortInterestData struct {
 	} `json:"dataset_data"`
 }
 
+var(
+  cachedData = cache.New(60*time.Minute, 60*time.Minute)
+)
+
 func GetShortInterest(w http.ResponseWriter, r *http.Request){
 
   err := godotenv.Load()
   if err != nil {
     log.Fatal("Error loading .env file")
   }
-
-  var yx,sq ShortInterestData
 
   u, err := url.Parse(r.URL.RequestURI())
   if err != nil{
@@ -47,6 +56,17 @@ func GetShortInterest(w http.ResponseWriter, r *http.Request){
   m,_ := url.ParseQuery(u.RawQuery)
   ticker := strings.ToUpper(m["symbol"][0])
 
+  val, found := cachedData.Get(ticker)
+  if found{
+    log.Println(ticker, "retrieved from cache.")
+    data := val.(*OptionsData)
+    json.NewEncoder(w).Encode(data)
+    return
+  }
+
+   var yx,sq ShortInterestData
+   var x Exchanges
+
   var xchange = func (data *ShortInterestData, xchangeName, startDate, endDate string){
 
     reqURL := fmt.Sprintf("https://data.nasdaq.com/api/v3/datasets/FINRA/%s_%s/data.json?start_date=%s&end_date=%s&api_key=%s",
@@ -55,7 +75,7 @@ func GetShortInterest(w http.ResponseWriter, r *http.Request){
       startDate,
       endDate,
       os.Getenv("NASDAQ_KEY"))
-
+    log.Println(reqURL)
     res, err := http.Get(reqURL)
     if err != nil{
       log.Fatal(err)
@@ -86,22 +106,25 @@ func GetShortInterest(w http.ResponseWriter, r *http.Request){
   xchange(&yx,nyse, start, end)
   xchange(&sq,nsdq, start, end)
 
-  fmt.Fprint(w, "\nNYSE")
-  printFormattedSIData(w,&yx)
+  x.NASDAQ = &sq
+  x.NYSE = &yx
+  //x.PercentDifference[0] = x.NASDAQ
+  json.NewEncoder(w).Encode(x)
+//  log.Println(yx)
+//  json.NewEncoder(w).Encode(x)
+//  fmt.Fprint(w, "\nNYSE")
+//  printFormattedSIData(w,&yx)
 
-  fmt.Fprint(w, "\nNASDAQ")
-  printFormattedSIData(w,&sq)
+//  printFormattedSIData(w,&sq)
 
-  calculateTotalVolume(w,&sq,&yx)
+  //calculateTotalVolume(w,&sq,&yx)
 }
 
-func printFormattedSIData(w http.ResponseWriter,s *ShortInterestData){
-  fmt.Fprint(w, "\tDate\t\tShort Volume\t\tShort Exempt Volume\t\tTotal Volume\n")
-  fmt.Fprint(w, fmt.Sprintf("\t%s", s.DatasetData.Data[0][0]))
-  fmt.Fprint(w, fmt.Sprintf("\t%.1f", s.DatasetData.Data[0][1]))
-  fmt.Fprint(w, fmt.Sprintf("\t\t%.1f", s.DatasetData.Data[0][2]))
-  fmt.Fprint(w, fmt.Sprintf("\t\t\t%.1f\n", s.DatasetData.Data[0][3]))
+func percentDifference(first,second int64)float64{
+  dV := float64(second - first)
+  return float64(100*(dV/math.Abs(float64(first))))
 }
+
 
 func calculateTotalVolume(w http.ResponseWriter,fnsq,fnyx *ShortInterestData){
 
@@ -117,7 +140,6 @@ func calculateTotalVolume(w http.ResponseWriter,fnsq,fnyx *ShortInterestData){
     }
     vals[i] = sq + yx
   }
-
 
   fmt.Fprintf(w, "\n\nTotal short volume: %.1f\t\tTotal exempt: %.1f\t\tTotal volume: %.1f", vals[1], vals[2], vals[3])
 }

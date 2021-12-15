@@ -1,14 +1,11 @@
-package options
+package quote
 
 import (
   "fmt"
   "log"
   "net/http"
-  //"strings"
   "io/ioutil"
   "encoding/json"
-//  "github.com/jwalton/gchalk"
-  //"time"
   "github.com/joho/godotenv"
   "os"
 )
@@ -26,7 +23,7 @@ type Trends struct {
 	} `json:"finance"`
 }
 
-var cache map[string] string
+var cachedTrends map[string] string
 
 func GetTrends(w http.ResponseWriter, r *http.Request){
 
@@ -59,30 +56,26 @@ func GetTrends(w http.ResponseWriter, r *http.Request){
       return
     }
     updateCache(tr)
-    fmt.Fprint(w, "\nTrending US stocks: \n ")
-    for i := range cache{
-
-      fmt.Fprint(w,fmt.Sprintf("\t\t%s\n",cache[i]))
-    }
+    json.NewEncoder(w).Encode(tr)
   }
 }
 
 func updateCache(tr Trends){
-  if cache == nil{
-    cache = make(map[string]string)
+  if cachedTrends == nil{
+    cachedTrends = make(map[string]string)
   }
   for i := 0; i < len(tr.Finance.Result[0].Quotes); i++{
-    _, exists := cache[tr.Finance.Result[0].Quotes[i].Symbol]
+    _, exists := cachedTrends[tr.Finance.Result[0].Quotes[i].Symbol]
     if !exists{
       log.Println("Adding ", tr.Finance.Result[0].Quotes[i].Symbol)
-      cache[tr.Finance.Result[0].Quotes[i].Symbol] = tr.Finance.Result[0].Quotes[i].Symbol
+      cachedTrends[tr.Finance.Result[0].Quotes[i].Symbol] = tr.Finance.Result[0].Quotes[i].Symbol
     }
   }
 }
 
 func printFormattedTrends(tr Trends){
   fmt.Println("\nTrending US stocks: ")
-  for i := range cache{
-    fmt.Println("\t",cache[i])
+  for i := range cachedTrends{
+    fmt.Println("\t",cachedTrends[i])
   }
 }
