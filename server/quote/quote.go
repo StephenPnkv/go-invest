@@ -97,7 +97,7 @@ type YahooQuote struct {
 }
 
 var(
-  quoteCache = cache.New(1*time.Minute, 1*time.Minute)//Update cache every minute 
+  quoteCache = cache.New(1*time.Minute, 1*time.Minute)//Update cache every minute
 )
 
 func GetQuote(w http.ResponseWriter, r *http.Request){
@@ -138,6 +138,7 @@ func GetQuote(w http.ResponseWriter, r *http.Request){
   }
 
   if res.StatusCode == http.StatusOK{
+    
     body, err := ioutil.ReadAll(res.Body)
     if err != nil{
       log.Fatal(err)
@@ -147,6 +148,9 @@ func GetQuote(w http.ResponseWriter, r *http.Request){
     if err != nil{
       log.Println(err)
     }
+
+    log.Println(quote.QuoteResponse.Result[0].Symbol, " quote set in cache.")
+    quoteCache.Set(quote.QuoteResponse.Result[0].Symbol, &quote, cache.DefaultExpiration)
     json.NewEncoder(w).Encode(quote)
   }
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import './Navbar.css';
 import Trends from '../trends/Trends';
+import { Routes, Route, Link } from "react-router-dom";
 
 const Navbar = () => {
 
@@ -12,8 +13,8 @@ const Navbar = () => {
       <img src="https://img.icons8.com/ios-filled/50/000000/define-location--v1.png"/>
       <h1>nTrades</h1>
       <div className="links">
-          <a href="/dashboard">Dashboard</a>
-          <a href="/stocks">Account</a>
+          <Link to="/stocks">Stocks</Link>
+          <Link to="/account">Account</Link>
       </div>
     </nav>
     </div>

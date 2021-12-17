@@ -83,7 +83,7 @@ type ChartData struct {
 }
 
 var (
-  chartCache = cache.New(30*time.Minute, 30*time.Minute)
+  chartCache = cache.New(60*time.Minute, 60*time.Minute)
 )
 
 func GetChart(w http.ResponseWriter, r *http.Request){
@@ -104,15 +104,14 @@ func GetChart(w http.ResponseWriter, r *http.Request){
 
   val, found := chartCache.Get(ticker)
   if found{
-    log.Printf(ticker, "retrieved from chart cache.")
+    log.Println(ticker, " retrieved from chart cache.")
     data := val.(*ChartData)
     json.NewEncoder(w).Encode(data)
     return
   }
 
-  var op ChartData
+  var ch ChartData
   client := &http.Client{}
-  //https://yfapi.net/v8/finance/chart/AAPL?comparisons=MSFT%2C%5EVIX&range=1mo&region=US&interval=1d&lang=en&events=div%2Csplit
 
   URL := fmt.Sprintf("https://yfapi.net/v8/finance/chart/%s?range=1mo&region=US&interval=1d&lang=en",ticker)
 
@@ -131,10 +130,13 @@ func GetChart(w http.ResponseWriter, r *http.Request){
       log.Fatal(err)
     }
     defer res.Body.Close()
-    err = json.Unmarshal(body,&op)
+    err = json.Unmarshal(body,&ch)
     if err != nil{
       log.Println(err)
     }
-    json.NewEncoder(w).Encode(op)
+
+    chartCache.Set(ch.Chart.Result[0].Meta.Symbol, &ch, cache.DefaultExpiration)
+    log.Println(ch.Chart.Result[0].Meta.Symbol, " set in chart cache")
+    json.NewEncoder(w).Encode(ch)
   }
 }

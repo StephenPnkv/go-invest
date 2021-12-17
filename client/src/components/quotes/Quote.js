@@ -2,10 +2,10 @@ import React, {useEffect, useState, useReducer,createContext} from 'react';
 import axios from 'axios';
 import {useFecth} from '../utility/UseFetch';
 import './quotes.css';
-import Table from 'react-bootstrap/Table';
 import {formatNum} from '../utility/Utility';
 import Chart from '../charts/Chart';
 import {useStore} from '../../store/Store';
+import Options from '../options/Options';
 
 
 const Quote = (props) => {
@@ -33,7 +33,6 @@ const Quote = (props) => {
         setData(res.data.quoteResponse.result[0]);
         axios.get('http://localhost:8080/api/si?symbol=' + res.data.quoteResponse.result[0].symbol)
           .then(siRes => {
-
             let d = [];
             for(let i = 0; i < siRes.data.nsdq.dataset_data.data.length; i++){
               let dataset = {};
@@ -41,7 +40,6 @@ const Quote = (props) => {
               dataset.nyse = siRes.data.nyse.dataset_data.data[i];
               d[i] = dataset;
             }
-            console.log(d);
             setSiData(d);
             setRenderTable(true);
           })
@@ -56,8 +54,6 @@ const Quote = (props) => {
       return {color: redColor};
     return {color: greenColor};
   }
-
-
 
   return(
     <div className="wrapper">
@@ -177,9 +173,15 @@ const Quote = (props) => {
     }
       <div className="chart">
       {
-        renderTable && data.symbol !== null && <Chart symbol={data.symbol}/>
+        renderTable &&
+        data.symbol !== null && <Chart symbol={data.symbol}/>
       }
       </div>
+      {
+        renderTable &&
+        data.symbol !== null && <Options symbol={data.symbol}/>
+      }
+
     </div>
   );
 }

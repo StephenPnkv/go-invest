@@ -58,8 +58,8 @@ func GetShortInterest(w http.ResponseWriter, r *http.Request){
 
   val, found := cachedData.Get(ticker)
   if found{
-    log.Println(ticker, "retrieved from cache.")
-    data := val.(*OptionsData)
+    log.Println(ticker, " retrieved from short interest cache.")
+    data := val.(*Exchanges)
     json.NewEncoder(w).Encode(data)
     return
   }
@@ -109,15 +109,10 @@ func GetShortInterest(w http.ResponseWriter, r *http.Request){
   x.NASDAQ = &sq
   x.NYSE = &yx
   //x.PercentDifference[0] = x.NASDAQ
+  cachedData.Set(ticker, &x, cache.DefaultExpiration)
+  log.Println(ticker, " set in short interest cache")
   json.NewEncoder(w).Encode(x)
-//  log.Println(yx)
-//  json.NewEncoder(w).Encode(x)
-//  fmt.Fprint(w, "\nNYSE")
-//  printFormattedSIData(w,&yx)
 
-//  printFormattedSIData(w,&sq)
-
-  //calculateTotalVolume(w,&sq,&yx)
 }
 
 func percentDifference(first,second int64)float64{
