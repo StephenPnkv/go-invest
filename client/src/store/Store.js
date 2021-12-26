@@ -13,7 +13,8 @@ export const StoreProvider = ({children, initialState,reducer}) => {
   const [globalState,dispatch] = React.useReducer(reducer,initialState);
 
   return(
-    <Store.Provider value={[globalState,dispatch],{redColor,greenColor}}>
+    <Store.Provider
+      value={[globalState,dispatch],{redColor,greenColor}}>
       {children}
     </Store.Provider>
   );

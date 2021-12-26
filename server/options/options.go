@@ -164,7 +164,7 @@ func GetOptionsData(w http.ResponseWriter, r *http.Request){
 
   val, found := optionsCache.Get(ticker)
   if found{
-    log.Println(ticker, "retrieved from options cache.")
+    log.Println(ticker, "retrieved from options cache")
     data := val.(*OptionsData)
     json.NewEncoder(w).Encode(data)
     return
@@ -193,122 +193,8 @@ func GetOptionsData(w http.ResponseWriter, r *http.Request){
     if err != nil{
       log.Println(err)
     }
+    optionsCache.Set(ticker,&op,cache.DefaultExpiration)
+    log.Println(ticker, " set to options cache")
     json.NewEncoder(w).Encode(op)
   }
-}
-
-func PrintFormattedQuoteData(w http.ResponseWriter, op OptionsData){
-  fmt.Fprint(w,"\tMarket cap.\tPrice\tHigh\tLow\tOpen\t52-week High\t52-week Low\tAvg. volume\tVolume\t\tP/E\t\n")
-  for i := 0; i < len(op.OptionChain.Result);i++{
-    fmt.Fprintf(w,"\t%d\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t\t%.2f\t\t%d\t%d\t%.2f\n",
-      op.OptionChain.Result[i].Quote.MarketCap,
-      op.OptionChain.Result[i].Quote.RegularMarketPrice,
-      op.OptionChain.Result[i].Quote.RegularMarketDayHigh,
-      op.OptionChain.Result[i].Quote.RegularMarketDayLow,
-      op.OptionChain.Result[i].Quote.RegularMarketOpen,
-      op.OptionChain.Result[i].Quote.FiftyTwoWeekHigh,
-      op.OptionChain.Result[i].Quote.FiftyTwoWeekLow,
-      op.OptionChain.Result[i].Quote.AverageDailyVolume10Day,
-      op.OptionChain.Result[i].Quote.RegularMarketVolume,
-      op.OptionChain.Result[i].Quote.PriceEpsCurrentYear,
-    )
-  }
-  fmt.Fprint(w,"\n")
-}
-
-func GetOpenInterestStats(op OptionsData)(int, int){
-  totalPutInterest, totalCallInterest := 0,0
-
-  for res := 0; res < len(op.OptionChain.Result); res++{
-
-    for i := 0; i < len(op.OptionChain.Result[res].Options); i++{
-
-      for j := 0; j < len(op.OptionChain.Result[res].Options[i].Puts); j++{
-        totalPutInterest += op.OptionChain.Result[res].Options[i].Puts[j].OpenInterest
-      }
-
-      for j := 0; j < len(op.OptionChain.Result[res].Options[i].Calls); j++{
-        totalCallInterest += op.OptionChain.Result[res].Options[i].Calls[j].OpenInterest
-      }
-
-    }
-
-  }
-  return totalPutInterest,totalCallInterest
-}
-
-func PrintFormattedOptionsData(w http.ResponseWriter, op OptionsData){
-  //#FF3333 - red
-  //#00FF80 - green
-  for res := 0; res < len(op.OptionChain.Result); res++{
-
-    for i := 0; i < len(op.OptionChain.Result[res].Options); i++{
-      //Options expiration dates returns as seconds since Thursday, 1 January 1970 from the Yahoo API
-      exp:= int64(op.OptionChain.Result[res].Options[i].ExpirationDate)
-      expDate := time.Unix(exp,0)
-
-      fmt.Fprintf(w,"\t$%s\t\t\t\t   %s\t\t\t\t\t\t\t\n",op.OptionChain.Result[res].Quote.Symbol,expDate)
-      fmt.Fprint(w,"\t\t\t\t\t\t       Puts\t\t\t\t\t\t\t\t\t\n")
-      fmt.Fprint(w,"\tStrike\t\tBid\t\tAsk\t\tVolume\t\tOpen Int.\tIV\t\t% Change\tITM\t\n")
-      for j := 0; j < len(op.OptionChain.Result[res].Options[i].Puts); j++{
-        pAsk := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Ask))
-        pBid := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].Bid))
-        var pChange string
-        if op.OptionChain.Result[res].Options[i].Puts[j].PercentChange < 0{
-          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].PercentChange))
-        }else{
-          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Puts[j].PercentChange))
-        }
-        var itm string
-        if op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney == true{
-          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
-        }else{
-          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Puts[j].InTheMoney))
-        }
-
-        coloredData := fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Puts[j].Strike,pBid,pAsk)
-        fmt.Fprint(w,coloredData)
-
-        plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
-          op.OptionChain.Result[res].Options[i].Puts[j].Volume,
-          op.OptionChain.Result[res].Options[i].Puts[j].OpenInterest,
-          op.OptionChain.Result[res].Options[i].Puts[j].ImpliedVolatility,
-          pChange,
-          itm)
-        fmt.Fprint(w,plainData)
-      }
-
-      fmt.Fprint(w,"\t\t\t\t\t\t       Calls\t\t\t\t\t\t\t\t\t\n")
-      for j := 0; j < len(op.OptionChain.Result[res].Options[i].Calls); j++{
-        pAsk := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Ask))
-        pBid := (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].Bid))
-        var pChange string
-        if op.OptionChain.Result[res].Options[i].Calls[j].PercentChange < 0{
-          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].PercentChange))
-        }else{
-          pChange = (fmt.Sprintf("%.2f", op.OptionChain.Result[res].Options[i].Calls[j].PercentChange))
-        }
-        var itm string
-        if op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney == true{
-          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
-        }else{
-          itm = (fmt.Sprintf("%v", op.OptionChain.Result[res].Options[i].Calls[j].InTheMoney))
-        }
-
-        coloredData := fmt.Sprintf("\t%.2f\t\t%s\t\t%s\t",op.OptionChain.Result[res].Options[i].Calls[j].Strike,pBid,pAsk)
-        fmt.Fprint(w,coloredData)
-
-        plainData := fmt.Sprintf("\t%d\t\t%d\t\t%.2f\t\t%s\t\t%s\t\n",
-          op.OptionChain.Result[res].Options[i].Calls[j].Volume,
-          op.OptionChain.Result[res].Options[i].Calls[j].OpenInterest,
-          op.OptionChain.Result[res].Options[i].Calls[j].ImpliedVolatility,
-          pChange,
-          itm)
-        fmt.Fprint(w,plainData)
-      }
-    }
-
-
-  }
-  fmt.Println("\n")
 }

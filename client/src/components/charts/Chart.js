@@ -17,7 +17,6 @@ const Chart = (props) => {
   },[url]);
 
   const fetchQuote = () =>{
-    console.log("called");
     if(!url) return;
     axios.get(url)
     .then(res => {
@@ -41,6 +40,7 @@ const Chart = (props) => {
     <div className="chart-wrapper">
     {
       renderChart &&
+
         <VictoryChart
           theme={VictoryTheme.material}
           domainPadding={10}
@@ -48,11 +48,11 @@ const Chart = (props) => {
           origin={{ x: 0, y: 0 }}
           >
 
-          <VictoryCandlestick
-            candleColors={{ positive: "#28B637", negative: "#c43a31" }}
-            data={chartData}
+        <VictoryCandlestick
+          candleColors={{ positive: "#28B637", negative: "#c43a31" }}
+          data={chartData}
+        />
 
-          />
         </VictoryChart>
     }
     </div>

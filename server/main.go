@@ -3,14 +3,14 @@ package main
 import (
   "go-invest/server/options"
   "go-invest/server/charts"
-  "context"
+  //"context"
   "go-invest/server/quote"
   "net/http"
   "github.com/gorilla/mux"
   "github.com/gorilla/handlers"
   "log"
-  "go.mongodb.org/mongo-driver/mongo"
-  mongoOptions "go.mongodb.org/mongo-driver/mongo/options"
+//  "go.mongodb.org/mongo-driver/mongo"
+//  mongoOptions "go.mongodb.org/mongo-driver/mongo/options"
 //  "os"
 )
 
@@ -41,8 +41,8 @@ func quoteHandler(w http.ResponseWriter, r *http.Request){
  quote.GetQuote(w,r)
 }
 
-var collection *mongo.Collection
-var ctx = context.TODO()
+//var collection *mongo.Collection
+//var ctx = context.TODO()
 
 func logError(err error){
   if err != nil{
@@ -51,14 +51,14 @@ func logError(err error){
 }
 
 func init(){
-  clientOptions := mongoOptions.Client().ApplyURI(`mongodb://localhost:27017`)
-  client, err := mongo.Connect(ctx, clientOptions)
-  logError(err)
+//  clientOptions := mongoOptions.Client().ApplyURI(`mongodb://localhost:27017`)
+//  client, err := mongo.Connect(ctx, clientOptions)
+//  logError(err)
 
-  err = client.Ping(ctx, nil)
-  logError(err)
+//  err = client.Ping(ctx, nil)
+//  logError(err)
 
-  collection = client.Database("precision").Collection("users")
+//  collection = client.Database("precision").Collection("users")
 
 }
 

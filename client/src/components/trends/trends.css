@@ -39,11 +39,11 @@
 }
 
 @keyframes horizontalMove {
-  0%{ transform: translate3d(100%,0,0);}
-  100%{ transform: translate3d(-300%,0,0);}
+  0%{ transform: translate3d(100%,0,0); animation-timing-function: ease-in;}
+  100%{ transform: translate3d(-200%,0,0);animation-timing-function: step-end;}
 }
 .hmove{
-  animation: horizontalMove 30s infinite;
+  animation: horizontalMove 12s infinite;
   animation-play-state: running;
 }
 .hmove:hover{animation-play-state: paused;}

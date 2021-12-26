@@ -15,10 +15,13 @@ const Quote = (props) => {
   const [siData, setSiData] = useState([]);
   const [url, setUrl] = useState("");
   const [renderTable, setRenderTable] = useState(false)
+  const [colorAnimation,setColorAnimation] = useState({});
 
   useEffect(()=> {
     setRenderTable(false);
+    setColorAnimation({animation: 'greenToWhiteBackGround 1s linear forwards'});
   },[url]);
+
 
 
   const handleSubmit = e => {
@@ -50,26 +53,36 @@ const Quote = (props) => {
   }
 
   const getStyle = () =>{
-    if(data.regularMarketChangePercent < 0)
-      return {color: redColor};
-    return {color: greenColor};
+    switch(data.marketState){
+      case "REGULAR":
+        return (data.regularMarketChangePercent < 0) ? {color: redColor} : {color: greenColor};
+      case "POST":
+        return (data.postMarketChangePercent < 0) ? {color: redColor} : {color: greenColor};
+      default:
+
+    }
+
   }
 
   return(
     <div className="wrapper">
     <div>
       <form>
-        <fieldset>
+        <fieldset style={colorAnimation}>
           <label>
           <div className="search-container">
-              <button onClick={handleSubmit} type="submit">
+              <button
+                style={colorAnimation}
+                onClick={handleSubmit}
+                type="submit">
                 <img src="https://img.icons8.com/ios-filled/50/000000/define-location--v1.png"/>
               </button>
               <input
-                      type="text"
-                      name="ticker"
-                      onChange={event => setUrl('http://localhost:8080/api/quote?symbol=' + event.target.value)}
-                      placeholder="search"/>
+                style={colorAnimation}
+                type="text"
+                name="ticker"
+                onChange={event => setUrl('http://localhost:8080/api/quote?symbol=' + event.target.value)}
+                placeholder="search"/>
             </div>
           </label>
         </fieldset>
@@ -80,9 +93,11 @@ const Quote = (props) => {
       { renderTable &&
         <div className="display-name-price">
           <h1> ${data.symbol} </h1>
+          <p> {data.longName} </p>
           <p style={getStyle()}>{parseFloat(data.regularMarketPrice.toPrecision(3))} ({parseFloat(data.regularMarketChangePercent.toPrecision(3))}%) Today</p>
 
           {
+            (data.marketState === "POST") &&
             <p style={getStyle()}>{parseFloat(data.postMarketPrice.toPrecision(3))} ({parseFloat(data.postMarketChangePercent.toPrecision(3))}%) After Hours</p>
           }
         </div>
@@ -143,45 +158,57 @@ const Quote = (props) => {
       </thead>
       <tbody>
         <tr>
-          <td>NSDQ {siData[0].nsdq[0]}</td>
-          <td>{siData[0].nsdq[1]}</td>
-          <td>{siData[0].nsdq[2]}</td>
-          <td>{siData[0].nsdq[3]}</td>
+          {siData[0].nsdq.map((ele,index) => {
+            if(index == 0){
+              ele = "NSDQ " + ele;
+            }
+            return  <td key={index}>{ele}</td>
+          })}
         </tr>
         <tr>
-          <td>NYSE {siData[0].nyse[0]}</td>
-          <td>{siData[0].nyse[1]}</td>
-          <td>{siData[0].nyse[2]}</td>
-          <td>{siData[0].nyse[3]}</td>
+          {siData[0].nyse.map((ele,index) => {
+            if(index == 0){
+              ele = "NYSE " + ele;
+            }
+            return  <td key={index}>{ele}</td>
+          })}
         </tr>
-        <tr>
-          <td>NSDQ {siData[1].nsdq[0]}</td>
-          <td>{siData[1].nsdq[1]}</td>
-          <td>{siData[1].nsdq[2]}</td>
-          <td>{siData[1].nsdq[3]}</td>
-        </tr>
-        <tr>
-          <td>NYSE {siData[1].nyse[0]}</td>
-          <td>{siData[1].nyse[1]}</td>
-          <td>{siData[1].nyse[2]}</td>
-          <td>{siData[1].nyse[3]}</td>
-        </tr>
+        {
+          (siData.length > 1) &&
+          <tr>
+          {siData[1].nsdq.map((ele,index) => {
+            if(index == 0){
+              ele = "NSDQ " + ele;
+            }
+            return  <td key={index}>{ele}</td>
+          })}
+          </tr>
+        }
+        { (siData.length > 1) &&
+
+          <tr>
+            {siData[1].nyse.map((ele,index) => {
+              if(index == 0){
+                ele = "NYSE " + ele;
+              }
+              return  <td key={index}>{ele}</td>
+            })}
+          </tr>
+        }
       </tbody>
       </table>
 
-
-    }
+      }
       <div className="chart">
       {
         renderTable &&
-        data.symbol !== null && <Chart symbol={data.symbol}/>
+        <Chart symbol={data.symbol}/>
       }
       </div>
       {
         renderTable &&
-        data.symbol !== null && <Options symbol={data.symbol}/>
+        <Options symbol={data.symbol}/>
       }
-
     </div>
   );
 }
