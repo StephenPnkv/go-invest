@@ -29,9 +29,14 @@ openInterest: 11
 strike: 0.5
 volume: 3
 */
+const roundNthDigit = (number, decimalPlaces) => {
+  const factorTen = Math.pow(10,decimalPlaces);
+  return Math.round(number * factorTen) / factorTen;
+}
 
 const getHeader = () => {
     return (
+
       <tr>
         <th>Strike</th>
         <th>Last</th>
@@ -41,37 +46,42 @@ const getHeader = () => {
         <th>Volume</th>
         <th>Open Int.</th>
         <th>Imp. Vol.</th>
+        <th>ITM</th>
       </tr>
   );
 }
 
 const getCalls = () => {
   return data.calls.map((obj,index) => {
-    return (<tr key={index}>
-      <td>{obj.strike}</td>
-      <td>{obj.lastPrice}</td>
-      <td>{obj.change}</td>
-      <td>{obj.bid}</td>
-      <td>{obj.ask}</td>
-      <td>{obj.volume}</td>
-      <td>{obj.openInterest}</td>
-      <td>{obj.impliedVolatility}</td>
+    return (
+      <tr key={index}>
+        <td>{obj.strike}</td>
+        <td>{obj.lastPrice}</td>
+        <td>{(100*obj.change).toPrecision(4)}%</td>
+        <td>{obj.bid}</td>
+        <td>{obj.ask}</td>
+        <td>{obj.volume}</td>
+        <td>{obj.openInterest}</td>
+        <td>{(100*obj.impliedVolatility).toPrecision(4)}%</td>
+        <td>{obj.inTheMoney.toString()}</td>
     </tr>);
   })
 }
 
 const getPuts = () => {
   return data.puts.map((obj,index) => {
-    return (<tr key={index}>
-      <td>{obj.strike}</td>
-      <td>{obj.lastPrice}</td>
-      <td>{obj.change}</td>
-      <td>{obj.bid}</td>
-      <td>{obj.ask}</td>
-      <td>{obj.volume}</td>
-      <td>{obj.openInterest}</td>
-      <td>{obj.impliedVolatility}</td>
-    </tr>);
+    return (
+      <tr key={index}>
+        <td>{obj.strike}</td>
+        <td>{obj.lastPrice}</td>
+        <td>{(100*obj.change).toPrecision(4)}%</td>
+        <td>{obj.bid}</td>
+        <td>{obj.ask}</td>
+        <td>{obj.volume}</td>
+        <td>{obj.openInterest}</td>
+        <td>{(100*obj.impliedVolatility).toPrecision(4)}%</td>
+        <td>{obj.inTheMoney.toString()}</td>
+      </tr>);
   })
 }
 
@@ -87,11 +97,14 @@ const getPuts = () => {
       .catch(err => console.log(err));
   }
 
+  const getExpiration = () => {
+    return(<div>{new Date(1000 * data.calls[0].expiration)}</div>);
+  }
+
 
   return(
       <div className="options-wrapper">
-      <h1>{props.symbol ? (props.symbol + " Calls") : "Not Found" }</h1>
-
+          <h1>{props.symbol ? (props.symbol + " Calls") : "Not Found" }</h1>
           <table>
           <thead className="quote-head">
             {
@@ -103,6 +116,10 @@ const getPuts = () => {
                 renderTable && getCalls()
               }
           </tbody>
+          </table>
+          <h1>{props.symbol ? (props.symbol + " Puts") : "Not Found" }</h1>
+          <table>
+
             <thead>
             {
               renderTable && getHeader()
@@ -111,7 +128,7 @@ const getPuts = () => {
 
           <tbody>
             {
-              renderTable && getCalls()
+              renderTable && getPuts()
             }
           </tbody>
         </table>
