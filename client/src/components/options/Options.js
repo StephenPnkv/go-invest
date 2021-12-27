@@ -34,6 +34,11 @@ const roundNthDigit = (number, decimalPlaces) => {
   return Math.round(number * factorTen) / factorTen;
 }
 
+const getStyle = (itm) => {
+  if(!itm) return {backgroundColor: "rgba(255,102,102,0.5)"};
+  return {backgroundColor: "rgba(92,219,149,0.5)"};
+}
+
 const getHeader = () => {
     return (
 
@@ -54,7 +59,7 @@ const getHeader = () => {
 const getCalls = () => {
   return data.calls.map((obj,index) => {
     return (
-      <tr key={index}>
+      <tr style={getStyle(obj.inTheMoney)} key={index}>
         <td>{obj.strike}</td>
         <td>{obj.lastPrice}</td>
         <td>{(100*obj.change).toPrecision(4)}%</td>
@@ -71,7 +76,7 @@ const getCalls = () => {
 const getPuts = () => {
   return data.puts.map((obj,index) => {
     return (
-      <tr key={index}>
+      <tr style={getStyle(obj.inTheMoney)} key={index}>
         <td>{obj.strike}</td>
         <td>{obj.lastPrice}</td>
         <td>{(100*obj.change).toPrecision(4)}%</td>
